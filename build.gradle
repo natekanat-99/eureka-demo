@@ -1,19 +1,17 @@
 plugins {
     id 'com.netflix.nebula.netflixoss' version '11.6.0'
-    id 'org.gretty' version '3.1.0'
+    id 'org.gretty' version '4.1.4'
 }
 
 idea {
     project {
-        languageLevel = '1.8'
+        languageLevel = '17'
     }
 }
 
-if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-        tasks.withType(Javadoc) {
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
+allprojects {
+    tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
     }
 }
 
@@ -21,26 +19,26 @@ allprojects {
     ext {
         githubProjectName = 'eureka'
 
-        awsVersion = '1.11.277'
+        awsVersion = '1.12.770'
         servletVersion = '2.5'
         jerseyVersion = '1.19.1'
         jettisonVersion = '1.5.4'
         apacheHttpClientVersion = '4.5.3'
         commonsConfigurationVersion = '1.10'
         jsr305Version = '3.0.2'
-        guiceVersion = '4.1.0'
+        guiceVersion = '5.1.0'
         servoVersion = '0.12.21'
         governatorVersion = '1.17.5'
         archaiusVersion = '0.7.6'
-        jacksonVersion = '2.10.5'
-        jacksonDatabindVersion = '2.10.5.1'
-        woodstoxVersion = '5.2.1'
+        jacksonVersion = '2.15.3'
+        jacksonDatabindVersion = '2.15.3'
+        woodstoxVersion = '6.5.1'
 
         // test deps
-        jetty_version = '7.2.0.v20101020'
+        jetty_version = '10.0.20'
         junit_version = '4.11'
-        mockitoVersion = '3.4.0'
-        mockserverVersion = '3.9.2'
+        mockitoVersion = '4.11.0'
+        mockserverVersion = '5.15.0'
     }
 }
 
@@ -50,8 +48,8 @@ subprojects {
 
     group = "com.netflix.${githubProjectName}"
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 17
+    targetCompatibility = 17
 
     repositories {
         mavenCentral()
@@ -61,6 +59,14 @@ subprojects {
         forkEvery = 1
         // setting this property prevents java from grabbing focus when running the tests under osx
         systemProperty 'java.awt.headless', 'true'
+    }
+
+    tasks.withType(Test) {
+        jvmArgs += [
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+        ]
     }
 
     jar {
