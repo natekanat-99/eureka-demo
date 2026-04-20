@@ -20,7 +20,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockserver.client.server.MockServerClient;
+import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.MockServerRule;
 import org.mockserver.matchers.Times;
 import org.mockserver.model.Header;
@@ -56,7 +56,7 @@ public class DiscoveryClientRedirectTest {
             .withPortResolver(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    return redirectServerMockRule.getHttpPort();
+                    return redirectServerMockRule.getPort();
                 }
             })
             .withInstanceInfo(myInstanceInfo)
@@ -68,7 +68,7 @@ public class DiscoveryClientRedirectTest {
             .withPortResolver(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    return redirectServerMockRule.getHttpPort();
+                    return redirectServerMockRule.getPort();
                 }
             })
             .withInstanceInfo(myInstanceInfo)
@@ -80,7 +80,7 @@ public class DiscoveryClientRedirectTest {
 
     @Before
     public void setUp() throws Exception {
-        targetServerBaseUri = "http://localhost:" + targetServerMockRule.getHttpPort();
+        targetServerBaseUri = "http://localhost:" + targetServerMockRule.getPort();
     }
 
     @After

@@ -21,7 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockserver.client.server.MockServerClient;
+import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.MockServerRule;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -55,7 +55,7 @@ public class JerseyReplicationClientTest {
     @Before
     public void setUp() throws Exception {
         replicationClient = JerseyReplicationClient.createReplicationClient(
-                config, serverCodecs, "http://localhost:" + serverMockRule.getHttpPort() + "/eureka/v2"
+                config, serverCodecs, "http://localhost:" + serverMockRule.getPort() + "/eureka/v2"
         );
     }
 

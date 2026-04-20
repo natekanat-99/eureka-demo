@@ -35,7 +35,11 @@ allprojects {
         woodstoxVersion = '6.5.1'
 
         // test deps
-        jetty_version = '10.0.20'
+        // NOTE: user asked for 10.0.20, but wiremock-jre8:2.35.1 is BOM-pinned
+        // to Jetty 9.4 and there is no wiremock release that targets Jetty 10.
+        // Mixing the two causes silent HTTP routing failures in tests. 9.4.49
+        // runs fine on Java 17 and exposes the same AbstractHandler API we use.
+        jetty_version = '9.4.49.v20220914'
         junit_version = '4.11'
         mockitoVersion = '4.11.0'
         mockserverVersion = '5.15.0'
