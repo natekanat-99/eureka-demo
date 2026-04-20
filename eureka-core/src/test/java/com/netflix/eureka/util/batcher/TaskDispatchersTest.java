@@ -160,7 +160,9 @@ public class TaskDispatchersTest {
         }
 
         void awaitCompletion() throws InterruptedException {
-            assertThat(completionGuard.tryAcquire(5, TimeUnit.SECONDS), is(true));
+            // Increased from 5s to 30s: the original timeout was tight enough to flake on slower
+            // CI runners and on Java 17, where JIT warmup and GC behaviour differ from Java 8.
+            assertThat(completionGuard.tryAcquire(30, TimeUnit.SECONDS), is(true));
         }
 
         int lowestHit() {

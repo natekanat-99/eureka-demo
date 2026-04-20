@@ -5,7 +5,7 @@ plugins {
 
 idea {
     project {
-        languageLevel = '1.8'
+        languageLevel = '17'
     }
 }
 
@@ -39,7 +39,7 @@ allprojects {
         // test deps
         jetty_version = '7.2.0.v20101020'
         junit_version = '4.11'
-        mockitoVersion = '3.4.0'
+        mockitoVersion = '5.11.0'
         mockserverVersion = '3.9.2'
     }
 }
@@ -50,8 +50,8 @@ subprojects {
 
     group = "com.netflix.${githubProjectName}"
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 17
+    targetCompatibility = 17
 
     repositories {
         mavenCentral()
@@ -61,6 +61,19 @@ subprojects {
         forkEvery = 1
         // setting this property prevents java from grabbing focus when running the tests under osx
         systemProperty 'java.awt.headless', 'true'
+
+        // Guice 4.x / cglib use deep reflection that is no longer open by default on Java 17.
+        // Grant the opens required by Guice's InternalInjectorCreator and cglib FastClass/FastMember.
+        jvmArgs += [
+                '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens=java.base/java.util=ALL-UNNAMED',
+                '--add-opens=java.base/java.io=ALL-UNNAMED',
+                '--add-opens=java.base/java.net=ALL-UNNAMED',
+                '--add-opens=java.base/java.nio=ALL-UNNAMED',
+                '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+                '--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED',
+        ]
     }
 
     jar {
