@@ -103,7 +103,7 @@ public abstract class AbstractJerseyEurekaHttpClient implements EurekaHttpClient
             response = requestBuilder.put(ClientResponse.class);
             EurekaHttpResponseBuilder<InstanceInfo> eurekaResponseBuilder = anEurekaHttpResponse(response.getStatus(), InstanceInfo.class).headers(headersOf(response));
             if (response.hasEntity() &&
-                    !HTML.equals(response.getType().getSubtype())) { //don't try and deserialize random html errors from the server
+                    !HTML.equalsIgnoreCase(response.getType().getSubtype())) { //don't try and deserialize random html errors from the server
                 eurekaResponseBuilder.entity(response.getEntity(InstanceInfo.class));
             }
             return eurekaResponseBuilder.build();
