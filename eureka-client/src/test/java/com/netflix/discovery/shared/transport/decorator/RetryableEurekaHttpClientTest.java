@@ -34,7 +34,7 @@ import com.netflix.discovery.shared.transport.decorator.EurekaHttpClientDecorato
 import com.netflix.discovery.shared.transport.decorator.EurekaHttpClientDecorator.RequestType;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
