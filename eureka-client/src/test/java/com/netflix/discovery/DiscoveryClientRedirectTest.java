@@ -21,7 +21,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.MockServerRule;
+import org.mockserver.integration.ClientAndServer;
 import org.mockserver.matchers.Times;
 import org.mockserver.model.Header;
 
@@ -35,19 +35,24 @@ import static org.mockserver.verify.VerificationTimes.exactly;
  */
 public class DiscoveryClientRedirectTest {
 
-    static class MockClientHolder {
-        MockServerClient client;
-    }
+    /*
+     * mockserver 5.x's {@link org.mockserver.junit.MockServerRule} uses
+     * reflection to inject a {@link MockServerClient} field on the target
+     * object, but two rule instances configured with {@code findFreePort()}
+     * can end up sharing the same listening port (and in turn the same
+     * ClientAndServer instance) when the two ports are picked back-to-back
+     * while neither is yet bound. That collapses the "redirect server" and
+     * "target server" into a single mock, so the 302 expectation matches the
+     * target's GET and the client redirects forever. Start the two
+     * {@link ClientAndServer} instances explicitly so each has its own
+     * distinct port.
+     */
+    private ClientAndServer redirectServer;
+    private ClientAndServer targetServer;
+    private MockServerClient redirectServerMockClient;
+    private MockServerClient targetServerMockClient;
 
     private final InstanceInfo myInstanceInfo = InstanceInfoGenerator.takeOne();
-
-    @Rule
-    public MockServerRule redirectServerMockRule = new MockServerRule(this);
-    private MockServerClient redirectServerMockClient;
-
-    private MockClientHolder targetServerMockClient = new MockClientHolder();
-    @Rule
-    public MockServerRule targetServerMockRule = new MockServerRule(targetServerMockClient);
 
     @Rule
     public DiscoveryClientResource registryFetchClientRule = DiscoveryClientResource.newBuilder()
@@ -56,7 +61,7 @@ public class DiscoveryClientRedirectTest {
             .withPortResolver(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    return redirectServerMockRule.getPort();
+                    return redirectServer.getPort();
                 }
             })
             .withInstanceInfo(myInstanceInfo)
@@ -68,7 +73,7 @@ public class DiscoveryClientRedirectTest {
             .withPortResolver(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    return redirectServerMockRule.getPort();
+                    return redirectServer.getPort();
                 }
             })
             .withInstanceInfo(myInstanceInfo)
@@ -80,7 +85,11 @@ public class DiscoveryClientRedirectTest {
 
     @Before
     public void setUp() throws Exception {
-        targetServerBaseUri = "http://localhost:" + targetServerMockRule.getPort();
+        redirectServer = ClientAndServer.startClientAndServer();
+        targetServer = ClientAndServer.startClientAndServer();
+        redirectServerMockClient = new MockServerClient("localhost", redirectServer.getPort());
+        targetServerMockClient = new MockServerClient("localhost", targetServer.getPort());
+        targetServerBaseUri = "http://localhost:" + targetServer.getPort();
     }
 
     @After
@@ -88,9 +97,14 @@ public class DiscoveryClientRedirectTest {
         if (redirectServerMockClient != null) {
             redirectServerMockClient.reset();
         }
-
-        if (targetServerMockClient.client != null) {
-            targetServerMockClient.client.reset();
+        if (targetServerMockClient != null) {
+            targetServerMockClient.reset();
+        }
+        if (redirectServer != null) {
+            redirectServer.stop();
+        }
+        if (targetServer != null) {
+            targetServer.stop();
         }
     }
 
@@ -110,7 +124,7 @@ public class DiscoveryClientRedirectTest {
                         .withStatusCode(302)
                         .withHeader(new Header("Location", targetServerBaseUri + "/eureka/v2/apps/"))
         );
-        targetServerMockClient.client.when(
+        targetServerMockClient.when(
                 request()
                         .withMethod("GET")
                         .withPath("/eureka/v2/apps/")
@@ -120,7 +134,7 @@ public class DiscoveryClientRedirectTest {
                         .withHeader(new Header("Content-Type", "application/json"))
                         .withBody(fullFetchJson)
         );
-        targetServerMockClient.client.when(
+        targetServerMockClient.when(
                 request()
                         .withMethod("GET")
                         .withPath("/eureka/v2/apps/delta")
@@ -143,8 +157,8 @@ public class DiscoveryClientRedirectTest {
 
         redirectServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
         redirectServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), exactly(0));
-        targetServerMockClient.client.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
-        targetServerMockClient.client.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), atLeast(1));
+        targetServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
+        targetServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), atLeast(1));
     }
 
     // There is an issue with using mock-server for this test case.  For now it is verified manually that it works.
@@ -169,7 +183,7 @@ public class DiscoveryClientRedirectTest {
                         .withStatusCode(302)
                         .withHeader(new Header("Location", targetServerBaseUri + "/eureka/v2/apps/"))
         );
-        targetServerMockClient.client.when(
+        targetServerMockClient.when(
                 request()
                         .withMethod("GET")
                         .withPath("/eureka/v2/apps/"),
@@ -180,7 +194,7 @@ public class DiscoveryClientRedirectTest {
                         .withHeader(new Header("Content-Type", "application/json"))
                         .withBody(fullFetchJson1)
         );
-        targetServerMockClient.client.when(
+        targetServerMockClient.when(
                 request()
                         .withMethod("GET")
                         .withPath("/eureka/v2/apps/delta"),
@@ -212,8 +226,8 @@ public class DiscoveryClientRedirectTest {
 
         redirectServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
         redirectServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), exactly(1));
-        targetServerMockClient.client.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
-        targetServerMockClient.client.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), exactly(1));
+        targetServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/"), exactly(1));
+        targetServerMockClient.verify(request().withMethod("GET").withPath("/eureka/v2/apps/delta"), exactly(1));
     }
 
     private static String toJson(Applications applications) throws IOException {

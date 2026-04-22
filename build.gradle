@@ -71,6 +71,9 @@ subprojects {
             '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
             '--add-opens', 'java.base/java.util=ALL-UNNAMED',
         ]
+        testLogging {
+            showStandardStreams = true
+        }
     }
 
     jar {
