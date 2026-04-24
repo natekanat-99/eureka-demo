@@ -33,9 +33,33 @@
       <param-name>com.sun.jersey.config.property.WebPageContentRegex</param-name>
       <param-value>/(flex|images|js|css|jsp)/.*</param-value>
     </init-param>
+    <!--
+      Jersey 1.x's embedded ASM cannot parse Java 17 bytecode (major version
+      61), so the classpath-wide package scanner triggered by
+      com.sun.jersey.config.property.packages (and by the WebAppResourceConfig
+      default) fails at startup with IllegalArgumentException. Force Jersey
+      to use ClassNamesResourceConfig and list the resource/provider classes
+      explicitly so no ASM scanning is performed.
+    -->
     <init-param>
-      <param-name>com.sun.jersey.config.property.packages</param-name>
-      <param-value>com.sun.jersey;com.netflix</param-value>
+      <param-name>com.sun.jersey.config.property.resourceConfigClass</param-name>
+      <param-value>com.sun.jersey.api.core.ClassNamesResourceConfig</param-value>
+    </init-param>
+    <init-param>
+      <param-name>com.sun.jersey.config.property.classnames</param-name>
+      <param-value>
+        com.netflix.discovery.provider.DiscoveryJerseyProvider,
+        com.netflix.eureka.resources.ApplicationResource,
+        com.netflix.eureka.resources.ApplicationsResource,
+        com.netflix.eureka.resources.ASGResource,
+        com.netflix.eureka.resources.InstanceResource,
+        com.netflix.eureka.resources.InstancesResource,
+        com.netflix.eureka.resources.PeerReplicationResource,
+        com.netflix.eureka.resources.SecureVIPResource,
+        com.netflix.eureka.resources.ServerInfoResource,
+        com.netflix.eureka.resources.StatusResource,
+        com.netflix.eureka.resources.VIPResource
+      </param-value>
     </init-param>
 
     <!-- GZIP content encoding/decoding -->

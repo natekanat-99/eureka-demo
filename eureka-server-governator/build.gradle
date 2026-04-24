@@ -11,10 +11,10 @@ dependencies {
     api "com.sun.jersey.contribs:jersey-guice:${jerseyVersion}"
     api 'org.slf4j:slf4j-log4j12:1.6.1'
     runtimeOnly "org.codehaus.jettison:jettison:${jettisonVersion}"
-    compileOnly "javax.servlet:servlet-api:${servletVersion}"
+    compileOnly "javax.servlet:javax.servlet-api:4.0.1"
 
     testImplementation project(':eureka-test-utils')
-    testImplementation 'org.mockito:mockito-core:1.10.19'
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
     testImplementation "org.eclipse.jetty:jetty-server:${jetty_version}"
     testImplementation "org.eclipse.jetty:jetty-webapp:${jetty_version}"
 }
