@@ -1,6 +1,10 @@
 configurations.all {
     // jersey2
     exclude group: 'org.glassfish.jersey'
+    // Old servlet-api 2.5 is incompatible with the Jetty 10 test server (which
+    // requires servlet-api 4.0). It is pulled in transitively via
+    // netflix-eventbus -> netflix-infix.
+    exclude group: 'javax.servlet', module: 'servlet-api'
 }
 
 dependencies {
@@ -18,6 +22,7 @@ dependencies {
     api 'javax.annotation:javax.annotation-api:1.3.2'
     api "commons-configuration:commons-configuration:${commonsConfigurationVersion}"
     api "com.google.inject:guice:${guiceVersion}"
+    api "javax.annotation:javax.annotation-api:1.3.2"
 
     api "com.github.vlsi.compactmap:compactmap:2.0"
 
@@ -38,8 +43,10 @@ dependencies {
     // mockito-inline was merged into mockito-core as the default in Mockito 5.x
     testImplementation "org.mockito:mockito-core:${mockitoVersion}"
     testImplementation "org.mock-server:mockserver-netty:${mockserverVersion}"
+    testImplementation "org.mock-server:mockserver-junit-rule:${mockserverVersion}"
     testImplementation "com.netflix.governator:governator:${governatorVersion}"
-    testImplementation "com.github.tomakehurst:wiremock-jre8:2.25.1"
+    testImplementation "com.github.tomakehurst:wiremock-jre8:2.35.1"
     testImplementation "org.assertj:assertj-core:3.11.1"
     testImplementation "javax.servlet:javax.servlet-api:4.0.1"
+    testRuntimeOnly "org.slf4j:slf4j-simple:2.0.9"
 }

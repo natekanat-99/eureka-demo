@@ -9,6 +9,7 @@ dependencies {
     api project(':eureka-client-jersey2')
     api 'org.glassfish.jersey.core:jersey-client:2.23.1'
     api 'org.glassfish.jersey.connectors:jersey-apache-connector:2.23.1'
+    compileOnly "javax.servlet:javax.servlet-api:4.0.1"
 
     testImplementation (project(':eureka-test-utils')) {
         // exclude all transitives to avoid bringing in jersey1 eureka-core
@@ -19,6 +20,7 @@ dependencies {
 
     testImplementation "junit:junit:${junit_version}"
     testImplementation "org.mock-server:mockserver-netty:${mockserverVersion}"
+    testImplementation "org.mock-server:mockserver-junit-rule:${mockserverVersion}"
     testImplementation "org.mockito:mockito-core:${mockitoVersion}"
     testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.10'
 }

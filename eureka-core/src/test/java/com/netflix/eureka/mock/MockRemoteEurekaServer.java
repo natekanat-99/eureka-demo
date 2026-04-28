@@ -1,5 +1,6 @@
 package com.netflix.eureka.mock;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -7,6 +8,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.netflix.appinfo.AbstractEurekaIdentity;
@@ -17,10 +20,10 @@ import com.netflix.discovery.shared.Applications;
 import com.netflix.eureka.*;
 import org.junit.Assert;
 import org.junit.rules.ExternalResource;
-import org.mortbay.jetty.Request;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.servlet.FilterHolder;
-import org.mortbay.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.server.NetworkConnector;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,15 +46,15 @@ public class MockRemoteEurekaServer extends ExternalResource {
                                   Map<String, Application> applicationDeltaMap) {
         this.applicationMap = applicationMap;
         this.applicationDeltaMap = applicationDeltaMap;
-        ServletHandler handler = new AppsResourceHandler();
         EurekaServerConfig serverConfig = new DefaultEurekaServerConfig();
         EurekaServerContext serverContext = mock(EurekaServerContext.class);
         when(serverContext.getServerConfig()).thenReturn(serverConfig);
 
-        handler.addFilterWithMapping(ServerRequestAuthFilter.class, "/*", 1).setFilter(new ServerRequestAuthFilter(serverContext));
-        handler.addFilterWithMapping(RateLimitingFilter.class, "/*", 1).setFilter(new RateLimitingFilter(serverContext));
+        AppsResourceHandler handler = new AppsResourceHandler();
+        handler.addFilter(new ServerRequestAuthFilter(serverContext));
+        handler.addFilter(new RateLimitingFilter(serverContext));
         server = new Server(port);
-        server.addHandler(handler);
+        server.setHandler(handler);
         System.out.println(String.format(
                 "Created eureka server mock with applications map %s and applications delta map %s",
                 stringifyAppMap(applicationMap), stringifyAppMap(applicationDeltaMap)));
@@ -73,7 +76,7 @@ public class MockRemoteEurekaServer extends ExternalResource {
 
     public void start() throws Exception {
         server.start();
-        port = server.getConnectors()[0].getLocalPort();
+        port = ((NetworkConnector) server.getConnectors()[0]).getLocalPort();
     }
 
     public void stop() throws Exception {
@@ -102,14 +105,21 @@ public class MockRemoteEurekaServer extends ExternalResource {
         return builder.toString();
     }
 
-    private class AppsResourceHandler extends ServletHandler {
+    private class AppsResourceHandler extends AbstractHandler {
+
+        private final List<Filter> filters = new ArrayList<>();
+
+        void addFilter(Filter filter) {
+            filters.add(filter);
+        }
 
         @Override
-        public void handle(String target, HttpServletRequest request, HttpServletResponse response, int dispatch)
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
                 throws IOException, ServletException {
 
             if (simulateNotReady) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                baseRequest.setHandled(true);
                 return;
             }
             String authName = request.getHeader(AbstractEurekaIdentity.AUTH_NAME_HEADER_KEY);
@@ -124,8 +134,8 @@ public class MockRemoteEurekaServer extends ExternalResource {
             Assert.assertTrue(!authVersion.equals(ServerRequestAuthFilter.UNKNOWN));
             Assert.assertTrue(!authId.equals(ServerRequestAuthFilter.UNKNOWN));
 
-            for (FilterHolder filterHolder : this.getFilters()) {
-                filterHolder.getFilter().doFilter(request, response, new FilterChain() {
+            for (Filter filter : filters) {
+                filter.doFilter(request, response, new FilterChain() {
                     @Override
                     public void doFilter(ServletRequest request, ServletResponse response)
                             throws IOException, ServletException {
@@ -147,13 +157,13 @@ public class MockRemoteEurekaServer extends ExternalResource {
                         apps.addApplication(application);
                     }
                     apps.setAppsHashCode(apps.getReconcileHashCode());
-                    sendOkResponseWithContent((Request) request, response, toJson(apps));
+                    sendOkResponseWithContent(baseRequest, response, toJson(apps));
                     handled = true;
                     sentDelta = true;
                 } else if (request.getMethod().equals("PUT") && pathInfo.startsWith("apps")) {
                     InstanceInfo instanceInfo = InstanceInfo.Builder.newBuilder()
                         .setAppName("TEST-APP").build();
-                    sendOkResponseWithContent((Request) request, response,
+                    sendOkResponseWithContent(baseRequest, response,
                         new EurekaJsonJacksonCodec().getObjectMapper(Applications.class).writeValueAsString(instanceInfo));
                     handled = true;
                 } else if (pathInfo.startsWith("apps")) {
@@ -162,7 +172,7 @@ public class MockRemoteEurekaServer extends ExternalResource {
                         apps.addApplication(application);
                     }
                     apps.setAppsHashCode(apps.getReconcileHashCode());
-                    sendOkResponseWithContent((Request) request, response, toJson(apps));
+                    sendOkResponseWithContent(baseRequest, response, toJson(apps));
                     handled = true;
                 }
             }
@@ -170,17 +180,18 @@ public class MockRemoteEurekaServer extends ExternalResource {
             if (!handled) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND,
                         "Request path: " + pathInfo + " not supported by eureka resource mock.");
+                baseRequest.setHandled(true);
             }
         }
 
-        private void sendOkResponseWithContent(Request request, HttpServletResponse response, String content)
+        private void sendOkResponseWithContent(Request baseRequest, HttpServletResponse response, String content)
                 throws IOException {
             response.setContentType("application/json; charset=UTF-8");
             response.setStatus(HttpServletResponse.SC_OK);
             response.getOutputStream().write(content.getBytes("UTF-8"));
             response.getOutputStream().flush();
-            request.setHandled(true);
-            System.out.println("Eureka resource mock, sent response for request path: " + request.getPathInfo() +
+            baseRequest.setHandled(true);
+            System.out.println("Eureka resource mock, sent response for request path: " + baseRequest.getPathInfo() +
                     " with content" + content);
         }
     }
